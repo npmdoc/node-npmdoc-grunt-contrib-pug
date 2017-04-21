@@ -1,0 +1,267 @@
+<html><head></head><body><div class="apidocDiv">
+<style>
+/*csslint
+*/
+.apidocDiv {
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.apidocDiv a[href] {
+    color: #33f;
+    font-weight: bold;
+    text-decoration: none;
+}
+.apidocDiv a[href]:hover {
+    text-decoration: underline;
+}
+.apidocCodeCommentSpan {
+    background: #bbf;
+    color: #000;
+    display: block;
+}
+.apidocCodeKeywordSpan {
+    color: #d00;
+    font-weight: bold;
+}
+.apidocCodePre {
+    background: #eef;
+    border: 1px solid;
+    color: #777;
+    padding: 5px;
+    white-space: pre-wrap;
+}
+.apidocFooterDiv {
+    margin-top: 20px;
+    text-align: center;
+}
+.apidocModuleLi {
+    margin-top: 10px;
+}
+.apidocSectionDiv {
+    border-top: 1px solid;
+    margin-top: 20px;
+}
+.apidocSignatureSpan {
+    color: #777;
+    font-weight: bold;
+}
+</style>
+<h1>api documentation for
+    <a>grunt-contrib-pug (v1.0.0)</a>
+</h1>
+<h4>Compile Pug templates</h4>
+<div class="apidocSectionDiv"><a href="#apidoc.tableOfContents" id="apidoc.tableOfContents"><h1>table of contents</h1></a><ol>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.grunt-contrib-pug">module grunt-contrib-pug</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.grunt-contrib-pug.grunt-contrib-pug">
+            function <span class="apidocSignatureSpan"></span>grunt-contrib-pug
+            <span class="apidocSignatureSpan">(grunt)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <span class="apidocSignatureSpan">object <span class="apidocSignatureSpan">grunt-contrib-pug.</span>pug</span>
+
+        </li>
+
+    </ol></li>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.grunt-contrib-pug.pug">module grunt-contrib-pug.pug</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.grunt-contrib-pug.pug.getNamespaceDeclaration">
+            function <span class="apidocSignatureSpan">grunt-contrib-pug.pug.</span>getNamespaceDeclaration
+            <span class="apidocSignatureSpan">(ns)</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+</ol></div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.grunt-contrib-pug" id="apidoc.module.grunt-contrib-pug">module grunt-contrib-pug</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.grunt-contrib-pug.grunt-contrib-pug" id="apidoc.element.grunt-contrib-pug.grunt-contrib-pug">
+        function <span class="apidocSignatureSpan"></span>grunt-contrib-pug
+        <span class="apidocSignatureSpan">(grunt)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">grunt-contrib-pug = function (grunt) {
+  var lib = require('./lib/pug');
+  var chalk = require('chalk');
+
+  // content conversion for templates
+  var defaultProcessContent = function(content) {
+    return content;
+  };
+
+  // filename conversion for templates
+  var defaultProcessName = function(name) {
+    return name.replace('.pug', '');
+  };
+
+  grunt.registerMultiTask('pug', 'Compile pug templates.', function() {
+    var options = this.options({
+      namespace: 'JST',
+      separator: grunt.util.linefeed + grunt.util.linefeed,
+      amd: false
+    });
+
+    var data = options.data;
+    delete options.data;
+
+    var nsInfo;
+
+    if (options.namespace !== false) {
+      nsInfo = lib.getNamespaceDeclaration(options.namespace);
+    }
+
+    // assign transformation functions
+    var processContent = options.processContent || defaultProcessContent;
+    var processName = options.processName || defaultProcessName;
+
+    this.files.forEach(function(f) {
+      var templates = [];
+
+      f.src.filter(function(filepath) {
+        // warn on and remove invalid source files (if nonull was set)
+        if (!grunt.file.exists(filepath)) {
+          grunt.log.warn('Source file "' + filepath + '" not found.');
+          return false;
+        }
+        return true;
+      })
+      .forEach(function(filepath) {
+        var src = processContent(grunt.file.read(filepath), filepath);
+        var compiled, filename;
+        filename = processName(filepath);
+
+        options.filename = filepath;
+
+        try {
+          var pug = f.orig.pug = require('pug');
+          if (typeof data === 'function') {
+            // if data is function, bind to f.orig, passing f.dest and f.src
+            f.orig.data = data.call(f.orig, f.dest, f.src);
+          } else {
+            f.orig.data = data;
+          }
+          if (options.filters) {
+            if (!f.orig.data.filters) {
+              f.orig.data.filters = {};
+            }
+            Object.keys(options.filters).forEach(function(filter) {
+              f.orig.data.filters[filter] = options.filters[filter].bind(f.orig);
+              options.filters[filter] = options.filters[filter].bind(f.orig);
+            });
+          }
+          // if in client mode, return function source
+          if (options.client) {
+            compiled = pug.compileClient(src, options).toString();
+          } else {
+            compiled = pug.compile(src, options)(f.orig.data);
+          }
+
+          // if configured for AMD and the namespace has been explicitly set
+          // to false, the Pug template will be directly returned
+          if (options.client &amp;&amp; options.amd &amp;&amp; options.namespace === false) {
+            compiled = 'return ' + compiled;
+          }
+        } catch (e) {
+          grunt.log.error(e);
+          grunt.fail.warn('Pug failed to compile "' + filepath + '".');
+          return false;
+        }
+
+        if (options.client &amp;&amp; options.namespace !== false) {
+          templates.push(nsInfo.namespace + '[' + JSON.stringify(filename) + '] = ' + compiled + ';');
+        } else {
+          templates.push(compiled);
+        }
+      });
+
+      var output = templates;
+      if (output.length &lt; 1) {
+        grunt.log.warn('Destination not written because compiled files were empty.');
+      } else {
+        if (options.client &amp;&amp; options.namespace !== false) {
+          output.unshift(nsInfo.declaration);
+
+          if (options.node) {
+            output.unshift('var pug = pug || require(\'pug/lib/runtime\');');
+
+            var nodeExport = 'if (typeof exports === \'object\' &amp;&amp; exports) {';
+            nodeExport += 'module.exports = ' + nsInfo.namespace + ';}';
+
+            output.push(nodeExport);
+          }
+        }
+
+        if (options.amd) {
+          // wrap the file in an AMD define function
+          output.unshift('define([\'pug\'], function(pug) { if(pug &amp;&amp; pug[\'runtime\'] !== undefined) { pug = pug.runtime; }');
+          if (options.namespace !== false) {
+            // namespace has not been explicitly set to false;
+            // the AMD wrapper will return the object containing the template
+            output.p ...</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+
+
+</div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.grunt-contrib-pug.pug" id="apidoc.module.grunt-contrib-pug.pug">module grunt-contrib-pug.pug</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.grunt-contrib-pug.pug.getNamespaceDeclaration" id="apidoc.element.grunt-contrib-pug.pug.getNamespaceDeclaration">
+        function <span class="apidocSignatureSpan">grunt-contrib-pug.pug.</span>getNamespaceDeclaration
+        <span class="apidocSignatureSpan">(ns)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">getNamespaceDeclaration = function (ns) {
+  var output = [];
+  var curPath = 'this';
+  if (ns !== 'this') {
+    var nsParts = ns.split('.');
+    nsParts.forEach(function(curPart) {
+      if (curPart !== 'this') {
+        curPath += '[' + JSON.stringify(curPart) + ']';
+        output.push(curPath + ' = ' + curPath + ' || {};');
+      }
+    });
+  }
+
+  return {
+    namespace: curPath,
+    declaration: output.join('\n')
+  };
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocFooterDiv">
+    [ this document was created with
+    <a href="https://github.com/kaizhu256/node-utility2" target="_blank">utility2</a>
+    ]
+</div>
+</div>
+</body></html>

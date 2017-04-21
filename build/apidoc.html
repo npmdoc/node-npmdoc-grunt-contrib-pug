@@ -1,0 +1,271 @@
+<div class="apidocDiv">
+<style>
+/*csslint
+*/
+.apidocDiv {
+    background: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+}
+.apidocDiv a[href] {
+    color: #33f;
+    font-weight: bold;
+    text-decoration: none;
+}
+.apidocDiv a[href]:hover {
+    text-decoration: underline;
+}
+.apidocCodeCommentSpan {
+    background: #bbf;
+    color: #000;
+    display: block;
+}
+.apidocCodeKeywordSpan {
+    color: #d00;
+    font-weight: bold;
+}
+.apidocCodePre {
+    background: #eef;
+    border: 1px solid;
+    color: #777;
+    padding: 5px;
+    white-space: pre-wrap;
+}
+.apidocFooterDiv {
+    margin-top: 20px;
+    text-align: center;
+}
+.apidocModuleLi {
+    margin-top: 10px;
+}
+.apidocSectionDiv {
+    border-top: 1px solid;
+    margin-top: 20px;
+}
+.apidocSignatureSpan {
+    color: #777;
+    font-weight: bold;
+}
+</style>
+<h1>api documentation for
+    <a
+
+    >grunt-contrib-pug (v1.0.0)</a>
+</h1>
+<h4>Compile Pug templates</h4>
+<div class="apidocSectionDiv"><a
+    href="#apidoc.tableOfContents"
+    id="apidoc.tableOfContents"
+><h1>table of contents</h1></a><ol>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.grunt-contrib-pug">module grunt-contrib-pug</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.grunt-contrib-pug.grunt-contrib-pug">
+            function <span class="apidocSignatureSpan"></span>grunt-contrib-pug
+            <span class="apidocSignatureSpan">(grunt)</span>
+            </a>
+
+        </li>
+
+        <li>
+
+            <span class="apidocSignatureSpan">object <span class="apidocSignatureSpan">grunt-contrib-pug.</span>pug</span>
+
+        </li>
+
+    </ol></li>
+
+    <li class="apidocModuleLi"><a href="#apidoc.module.grunt-contrib-pug.pug">module grunt-contrib-pug.pug</a><ol>
+
+        <li>
+
+            <a class="apidocElementLiA" href="#apidoc.element.grunt-contrib-pug.pug.getNamespaceDeclaration">
+            function <span class="apidocSignatureSpan">grunt-contrib-pug.pug.</span>getNamespaceDeclaration
+            <span class="apidocSignatureSpan">(ns)</span>
+            </a>
+
+        </li>
+
+    </ol></li>
+
+</ol></div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.grunt-contrib-pug" id="apidoc.module.grunt-contrib-pug">module grunt-contrib-pug</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.grunt-contrib-pug.grunt-contrib-pug" id="apidoc.element.grunt-contrib-pug.grunt-contrib-pug">
+        function <span class="apidocSignatureSpan"></span>grunt-contrib-pug
+        <span class="apidocSignatureSpan">(grunt)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">grunt-contrib-pug = function (grunt) {
+  var lib = require(&#x27;./lib/pug&#x27;);
+  var chalk = require(&#x27;chalk&#x27;);
+
+  // content conversion for templates
+  var defaultProcessContent = function(content) {
+    return content;
+  };
+
+  // filename conversion for templates
+  var defaultProcessName = function(name) {
+    return name.replace(&#x27;.pug&#x27;, &#x27;&#x27;);
+  };
+
+  grunt.registerMultiTask(&#x27;pug&#x27;, &#x27;Compile pug templates.&#x27;, function() {
+    var options = this.options({
+      namespace: &#x27;JST&#x27;,
+      separator: grunt.util.linefeed + grunt.util.linefeed,
+      amd: false
+    });
+
+    var data = options.data;
+    delete options.data;
+
+    var nsInfo;
+
+    if (options.namespace !== false) {
+      nsInfo = lib.getNamespaceDeclaration(options.namespace);
+    }
+
+    // assign transformation functions
+    var processContent = options.processContent || defaultProcessContent;
+    var processName = options.processName || defaultProcessName;
+
+    this.files.forEach(function(f) {
+      var templates = [];
+
+      f.src.filter(function(filepath) {
+        // warn on and remove invalid source files (if nonull was set)
+        if (!grunt.file.exists(filepath)) {
+          grunt.log.warn(&#x27;Source file &#x22;&#x27; + filepath + &#x27;&#x22; not found.&#x27;);
+          return false;
+        }
+        return true;
+      })
+      .forEach(function(filepath) {
+        var src = processContent(grunt.file.read(filepath), filepath);
+        var compiled, filename;
+        filename = processName(filepath);
+
+        options.filename = filepath;
+
+        try {
+          var pug = f.orig.pug = require(&#x27;pug&#x27;);
+          if (typeof data === &#x27;function&#x27;) {
+            // if data is function, bind to f.orig, passing f.dest and f.src
+            f.orig.data = data.call(f.orig, f.dest, f.src);
+          } else {
+            f.orig.data = data;
+          }
+          if (options.filters) {
+            if (!f.orig.data.filters) {
+              f.orig.data.filters = {};
+            }
+            Object.keys(options.filters).forEach(function(filter) {
+              f.orig.data.filters[filter] = options.filters[filter].bind(f.orig);
+              options.filters[filter] = options.filters[filter].bind(f.orig);
+            });
+          }
+          // if in client mode, return function source
+          if (options.client) {
+            compiled = pug.compileClient(src, options).toString();
+          } else {
+            compiled = pug.compile(src, options)(f.orig.data);
+          }
+
+          // if configured for AMD and the namespace has been explicitly set
+          // to false, the Pug template will be directly returned
+          if (options.client &#x26;&#x26; options.amd &#x26;&#x26; options.namespace === false) {
+            compiled = &#x27;return &#x27; + compiled;
+          }
+        } catch (e) {
+          grunt.log.error(e);
+          grunt.fail.warn(&#x27;Pug failed to compile &#x22;&#x27; + filepath + &#x27;&#x22;.&#x27;);
+          return false;
+        }
+
+        if (options.client &#x26;&#x26; options.namespace !== false) {
+          templates.push(nsInfo.namespace + &#x27;[&#x27; + JSON.stringify(filename) + &#x27;] = &#x27; + compiled + &#x27;;&#x27;);
+        } else {
+          templates.push(compiled);
+        }
+      });
+
+      var output = templates;
+      if (output.length &#x3c; 1) {
+        grunt.log.warn(&#x27;Destination not written because compiled files were empty.&#x27;);
+      } else {
+        if (options.client &#x26;&#x26; options.namespace !== false) {
+          output.unshift(nsInfo.declaration);
+
+          if (options.node) {
+            output.unshift(&#x27;var pug = pug || require(\&#x27;pug/lib/runtime\&#x27;);&#x27;);
+
+            var nodeExport = &#x27;if (typeof exports === \&#x27;object\&#x27; &#x26;&#x26; exports) {&#x27;;
+            nodeExport += &#x27;module.exports = &#x27; + nsInfo.namespace + &#x27;;}&#x27;;
+
+            output.push(nodeExport);
+          }
+        }
+
+        if (options.amd) {
+          // wrap the file in an AMD define function
+          output.unshift(&#x27;define([\&#x27;pug\&#x27;], function(pug) { if(pug &#x26;&#x26; pug[\&#x27;runtime\&#x27;] !== undefined) { pug = pug.runtime; }&#x27;);
+          if (options.namespace !== false) {
+            // namespace has not been explicitly set to false;
+            // the AMD wrapper will return the object containing the template
+            output.p ...</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+
+
+</div>
+
+<div class="apidocSectionDiv">
+<h1><a href="#apidoc.module.grunt-contrib-pug.pug" id="apidoc.module.grunt-contrib-pug.pug">module grunt-contrib-pug.pug</a></h1>
+
+
+    <h2>
+        <a href="#apidoc.element.grunt-contrib-pug.pug.getNamespaceDeclaration" id="apidoc.element.grunt-contrib-pug.pug.getNamespaceDeclaration">
+        function <span class="apidocSignatureSpan">grunt-contrib-pug.pug.</span>getNamespaceDeclaration
+        <span class="apidocSignatureSpan">(ns)</span>
+        </a>
+    </h2>
+    <ul>
+    <li>description and source-code<pre class="apidocCodePre">getNamespaceDeclaration = function (ns) {
+  var output = [];
+  var curPath = &#x27;this&#x27;;
+  if (ns !== &#x27;this&#x27;) {
+    var nsParts = ns.split(&#x27;.&#x27;);
+    nsParts.forEach(function(curPart) {
+      if (curPart !== &#x27;this&#x27;) {
+        curPath += &#x27;[&#x27; + JSON.stringify(curPart) + &#x27;]&#x27;;
+        output.push(curPath + &#x27; = &#x27; + curPath + &#x27; || {};&#x27;);
+      }
+    });
+  }
+
+  return {
+    namespace: curPath,
+    declaration: output.join(&#x27;\n&#x27;)
+  };
+}</pre></li>
+    <li>example usage<pre class="apidocCodePre">n/a</pre></li>
+    </ul>
+
+
+</div>
+
+<div class="apidocFooterDiv">
+    [ this document was created with
+    <a href="https://github.com/kaizhu256/node-utility2" target="_blank">utility2</a>
+    ]
+</div>
+</div>
